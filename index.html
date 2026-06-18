@@ -1,7 +1,300 @@
 <!DOCTYPE html>
+<!--
+  ============================================================================
+   영재 탐구 산출물 아카이브 — GitHub Pages 템플릿
+  ============================================================================
+
+  [이 파일이 하는 일]
+  이 파일 하나(index.html)만 GitHub 저장소에 올리고 Pages를 켜면
+  곧바로 작동하는 공개 아카이브 사이트가 됩니다. (실습 1 + 실습 2 동시 완성)
+
+  [강사님이 편집할 곳은 딱 3군데입니다]
+   1) 아래 (A) 사이트 머리말  — 아카이브 이름, 한 줄 철학, 운영자 닉네임
+   2) 아래 (B) 카드 목록      — 카드 안의 글자만 바꾸면 됩니다
+   3) 카드를 더 넣고 싶을 때   — (C) "복사용 빈 카드"를 통째로 복사해 붙여넣기
+
+  [개인정보 원칙 — 강의안 9-2와 동일]
+   · 학생 실명·학교명·반은 절대 적지 않습니다. 닉네임만 사용하세요.
+   · Public 저장소는 검색에 노출됩니다. 적기 전에 한 번 더 점검.
+
+  [핵심 메시지 — 이건 '갤러리'가 아니라 '사고 아카이브']
+   · 완성도가 아니라 '탐구 질문 · 사고 흔적 · 열린 결론'을 보여줍니다.
+   · 작동하는 산출물은 링크로 연결합니다(직접 호스팅 또는 외부 링크).
+  ============================================================================
+-->
 <html lang="ko">
-<head><meta charset="UTF-8"><title>첫 사이트</title></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>탐구 아카이브</title>
+
+  <!-- 글꼴: 인터넷이 연결되면 자동으로 불러옵니다. 손댈 필요 없습니다. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* === 색·여백을 한곳에서 관리 (바꾸고 싶으면 여기 값만 수정) === */
+    :root{
+      --paper:#F4F1EA;        /* 종이 바탕색 */
+      --paper-2:#FBF9F4;      /* 카드 표면색 */
+      --ink:#22201B;          /* 본문 먹색 */
+      --ink-soft:#5C564C;     /* 보조 글자 */
+      --line:#D8D2C4;         /* 가는 선 */
+      --accent:#1F6F66;       /* 강조색(짙은 청록) */
+      --accent-warm:#B4532B;  /* 보조 강조(테라코타) */
+      --maxw:1080px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0;}
+
+    body{
+      background:
+        radial-gradient(circle at 18% 12%, rgba(31,111,102,.05), transparent 40%),
+        radial-gradient(circle at 88% 80%, rgba(180,83,43,.05), transparent 45%),
+        var(--paper);
+      color:var(--ink);
+      font-family:"Pretendard",system-ui,sans-serif;
+      line-height:1.7;
+      -webkit-font-smoothing:antialiased;
+      padding:0 24px 96px;
+    }
+
+    .wrap{max-width:var(--maxw);margin:0 auto;}
+
+    /* ===================== (A) 사이트 머리말 ===================== */
+    header.site{
+      padding:72px 0 40px;
+      border-bottom:1.5px solid var(--ink);
+      animation:rise .7s ease backwards;
+    }
+    .kicker{
+      font-family:"IBM Plex Mono",monospace;
+      font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;
+      color:var(--accent);margin-bottom:18px;
+    }
+    header.site h1{
+      font-family:"Gowun Batang",serif;font-weight:700;
+      font-size:clamp(2.4rem,6vw,4.1rem);line-height:1.12;
+      letter-spacing:-.01em;max-width:18ch;
+    }
+    header.site .tagline{
+      font-family:"Gowun Batang",serif;font-style:italic;
+      font-size:clamp(1.05rem,2.4vw,1.35rem);color:var(--ink-soft);
+      margin-top:22px;max-width:46ch;
+    }
+    .byline{
+      font-family:"IBM Plex Mono",monospace;font-size:.82rem;
+      color:var(--ink-soft);margin-top:28px;
+      display:flex;gap:18px;flex-wrap:wrap;
+    }
+    .byline b{color:var(--ink);font-weight:500;}
+
+    /* ===================== 안내 띠(이 아카이브가 무엇인지) ===================== */
+    .note{
+      margin:36px 0 8px;padding:20px 24px;
+      background:var(--paper-2);border:1px solid var(--line);
+      border-left:4px solid var(--accent-warm);border-radius:4px;
+      font-size:.96rem;color:var(--ink-soft);
+      animation:rise .7s ease .1s backwards;
+    }
+
+    /* ===================== 카드 목록 ===================== */
+    .grid{
+      margin-top:40px;
+      display:grid;grid-template-columns:repeat(2,1fr);gap:28px;
+    }
+    @media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+
+    .card{
+      position:relative;background:var(--paper-2);
+      border:1px solid var(--line);border-radius:6px;
+      padding:30px 30px 26px;
+      box-shadow:0 1px 0 rgba(0,0,0,.02);
+      transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+      animation:rise .7s ease backwards;
+    }
+    .card:hover{
+      transform:translateY(-4px);
+      box-shadow:0 14px 30px -18px rgba(34,32,27,.45);
+      border-color:var(--accent);
+    }
+    /* 카드마다 등장 시간을 살짝 어긋나게 (있으면 더 보기 좋고, 없어도 무방) */
+    .card:nth-child(1){animation-delay:.05s}
+    .card:nth-child(2){animation-delay:.12s}
+    .card:nth-child(3){animation-delay:.19s}
+    .card:nth-child(4){animation-delay:.26s}
+    .card:nth-child(5){animation-delay:.33s}
+    .card:nth-child(6){animation-delay:.40s}
+
+    .card .no{
+      font-family:"IBM Plex Mono",monospace;font-size:.72rem;
+      letter-spacing:.14em;color:var(--accent);
+    }
+    .card h2{
+      font-family:"Gowun Batang",serif;font-weight:700;
+      font-size:1.42rem;line-height:1.3;margin:6px 0 18px;
+    }
+
+    /* 카드 안의 항목(라벨 + 내용) — 이게 '영재 카드'의 핵심 구조 */
+    .field{padding:14px 0;border-top:1px solid var(--line);}
+    .field:first-of-type{border-top:none;padding-top:0;}
+    .field .label{
+      font-family:"IBM Plex Mono",monospace;font-size:.7rem;
+      letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
+      display:block;margin-bottom:6px;
+    }
+    .field .label.q{color:var(--accent);}
+    .field .label.t{color:var(--accent-warm);}
+    .field p{font-size:.97rem;color:var(--ink);}
+
+    .card .meta{
+      display:flex;justify-content:space-between;align-items:center;
+      gap:14px;margin-top:18px;padding-top:16px;
+      border-top:1px solid var(--line);
+    }
+    .card .updated{
+      font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-soft);
+    }
+    .card a.go{
+      font-family:"IBM Plex Mono",monospace;font-size:.8rem;font-weight:500;
+      color:var(--accent);text-decoration:none;
+      border:1px solid var(--accent);border-radius:999px;
+      padding:7px 15px;white-space:nowrap;
+      transition:background .2s ease,color .2s ease;
+    }
+    .card a.go:hover{background:var(--accent);color:var(--paper-2);}
+
+    /* ===================== 꼬리말 ===================== */
+    footer.site{
+      margin-top:64px;padding-top:28px;border-top:1.5px solid var(--ink);
+      font-family:"IBM Plex Mono",monospace;font-size:.78rem;
+      color:var(--ink-soft);display:flex;justify-content:space-between;
+      gap:18px;flex-wrap:wrap;
+    }
+
+    @keyframes rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+  </style>
+</head>
+
 <body>
-  <h1>안녕하세요, 저의 첫 GitHub Pages 사이트입니다.</h1>
+<div class="wrap">
+
+  <!-- ========================================================= -->
+  <!-- (A) 사이트 머리말 — 이 세 줄만 바꾸세요                     -->
+  <!-- ========================================================= -->
+  <header class="site">
+    <div class="kicker">탐구 아카이브 · ARCHIVE OF INQUIRY</div>
+    <h1>생각이 멈추지 않고 이어지는 곳</h1>
+    <!-- ↓ 한 줄 철학(이탤릭). 강의안의 핵심 메시지를 본인 문장으로 -->
+    <p class="tagline">제출하고 끝나는 결과물이 아니라, 이어지고 자라는 사고의 흔적을 모읍니다.</p>
+    <!-- ↓ 운영자 정보. 실명·학교명 대신 닉네임/역할만 -->
+    <div class="byline">
+      <span>운영 <b>탐구지기</b></span>
+      <span>분야 <b>영재교육 · 개방형 탐구</b></span>
+      <span>호스팅 <b>GitHub Pages</b></span>
+    </div>
+  </header>
+
+  <!-- 이 아카이브가 무엇인지 한 문단으로 안내 (그대로 둬도 좋습니다) -->
+  <div class="note">
+    이곳은 완성된 작품을 전시하는 갤러리가 아니라, <b>학생의 탐구 질문과 사고 과정이 보이도록</b> 모아 둔
+    아카이브입니다. 각 카드는 ‘무엇을 궁금해했는지 → 어떻게 헤맸는지 → 어디에 닿았고 무엇이 열려 있는지’를 담습니다.
+    작동하는 산출물은 카드의 링크로 연결됩니다.
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- (B) 카드 목록 — 카드 안의 글자만 바꾸면 됩니다              -->
+  <!-- ========================================================= -->
+  <main class="grid">
+
+    <!-- ───── 카드 예시 1 ───── -->
+    <article class="card">
+      <div class="no">No. 001</div>
+      <h2>우리 동네 버스는 왜 항상 같이 몰려올까</h2>
+
+      <div class="field">
+        <span class="label q">탐구 질문</span>
+        <p>일정한 간격으로 출발하는 버스가 왜 정류장에서는 두세 대가 붙어서 오는가?</p>
+      </div>
+      <div class="field">
+        <span class="label t">사고 흔적 · 시행착오</span>
+        <p>처음엔 운전기사 탓이라 생각했지만, 종이에 정류장을 그려 손으로 굴려 보니 ‘승객이 많은 정류장에서 늦어진 버스가 더 늦어진다’는 되먹임을 발견. 엑셀 시뮬레이션은 실패했고, 결국 간단한 웹 애니메이션으로 다시 만듦.</p>
+      </div>
+      <div class="field">
+        <span class="label">열린 결론</span>
+        <p>‘버스 뭉침(bunching)’은 개인의 실수가 아니라 시스템의 성질. 그렇다면 배차 간격을 어떻게 바꿔야 덜 뭉칠까? 다음 탐구로 남겨 둠.</p>
+      </div>
+
+      <div class="meta">
+        <span class="updated">갱신 2026-05-21</span>
+        <!-- ↓ 작동하는 산출물 링크. 같은 저장소에 올린 파일이면 "bus.html" 처럼 파일명만 -->
+        <a class="go" href="#" target="_blank" rel="noopener">산출물 열기 →</a>
+      </div>
+    </article>
+
+    <!-- ───── 카드 예시 2 ───── -->
+    <article class="card">
+      <div class="no">No. 002</div>
+      <h2>‘공정한’ 사다리타기는 가능한가</h2>
+
+      <div class="field">
+        <span class="label q">탐구 질문</span>
+        <p>사다리타기는 정말 모든 사람에게 똑같이 공정한가? 가로줄 개수가 결과에 영향을 줄까?</p>
+      </div>
+      <div class="field">
+        <span class="label t">사고 흔적 · 시행착오</span>
+        <p>10번 돌려보고 ‘공정하다’고 결론 냈다가, 친구가 “표본이 너무 적다”고 반박. AI에게 수천 번 자동으로 돌리는 코드를 요청해 분포를 직접 확인. 가로줄이 적으면 편향이 커진다는 걸 그래프로 확인.</p>
+      </div>
+      <div class="field">
+        <span class="label">열린 결론</span>
+        <p>가로줄이 충분히 많으면 거의 균등해지지만 ‘완전한’ 공정은 아니다. ‘충분히 많다’는 몇 개부터인가? 측정 기준을 더 고민해야 함.</p>
+      </div>
+
+      <div class="meta">
+        <span class="updated">갱신 2026-05-18</span>
+        <a class="go" href="#" target="_blank" rel="noopener">산출물 열기 →</a>
+      </div>
+    </article>
+
+    <!-- ========================================================= -->
+    <!-- (C) 복사용 빈 카드 — 카드를 늘리려면 아래 <article>~</article> 를  -->
+    <!--     통째로 복사해서 이 자리 위/아래에 붙여넣고 글자만 바꾸세요.   -->
+    <!--     No. 번호도 003, 004… 로 올려 주세요.                        -->
+    <!-- ========================================================= -->
+    <article class="card">
+      <div class="no">No. 003</div>
+      <h2>여기에 산출물 제목</h2>
+
+      <div class="field">
+        <span class="label q">탐구 질문</span>
+        <p>학생이 붙들었던 질문을 한 문장으로.</p>
+      </div>
+      <div class="field">
+        <span class="label t">사고 흔적 · 시행착오</span>
+        <p>어떻게 접근했고, 어디서 막혔고, 무엇을 바꿔 다시 시도했는지. (영재 카드의 핵심)</p>
+      </div>
+      <div class="field">
+        <span class="label">열린 결론</span>
+        <p>답이 아니라, 닿은 지점과 남은 질문.</p>
+      </div>
+
+      <div class="meta">
+        <span class="updated">갱신 2026-00-00</span>
+        <a class="go" href="#" target="_blank" rel="noopener">산출물 열기 →</a>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- ===================== 꼬리말 ===================== -->
+  <footer class="site">
+    <span>학생 식별 정보를 담지 않습니다 · 닉네임만 사용</span>
+    <span>BUILT WITH GITHUB PAGES</span>
+  </footer>
+
+</div>
 </body>
 </html>
