@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>혈당량 조절 항상성 시뮬레이션</title>
+<style>
+  /* ===== 전체 기본 스타일 (파스텔톤 디자인) ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Apple SD Gothic Neo", "맑은 고딕", sans-serif;
+    background: linear-gradient(135deg, #f0f7ff 0%, #fef6f9 100%);
+    color: #333;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    color: #4a6fa5;
+    margin-bottom: 6px;
+    font-size: 28px;
+  }
+  .subtitle { text-align: center; color: #8a9bb5; margin-bottom: 24px; font-size: 15px; }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(120,140,180,0.12);
+  }
+  .full { grid-column: 1 / -1; }
+  .card h2 { font-size: 17px; color: #4a6fa5; margin-bottom: 14px; }
+
+  /* ===== 컨트롤 버튼 ===== */
+  .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  button {
+    border: none; border-radius: 14px; padding: 14px 22px;
+    font-size: 16px; font-weight: bold; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s; color: #fff;
+  }
+  button:hover { transform: translateY(-2px); }
+  button:active { transform: translateY(0); }
+  .btn-eat   { background: #ff9aa2; box-shadow: 0 4px 0 #f07b85; }
+  .btn-exer  { background: #82c8e5; box-shadow: 0 4px 0 #5fa9c9; }
+  .btn-reset { background: #b5b5c3; box-shadow: 0 4px 0 #9a9aa8; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ===== 혈당 게이지 ===== */
+  .gauge-wrap { position: relative; height: 220px; display:flex; align-items:flex-end; justify-content:center; gap: 0;}
+  .gauge-bar-bg {
+    position: relative; width: 90px; height: 200px;
+    background: #eef1f6; border-radius: 12px; overflow: hidden;
+    border: 2px solid #e0e5ee;
+  }
+  /* 정상 범위(녹색 가이드라인) 영역 */
+  .normal-zone {
+    position: absolute; left: 0; width: 100%;
+    background: rgba(130, 200, 130, 0.25);
+    border-top: 2px dashed #6bbf6b; border-bottom: 2px dashed #6bbf6b;
+  }
+  .gauge-fill {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    background: linear-gradient(to top, #ff9aa2, #ffb347);
+    transition: height 0.8s ease, background 0.8s;
+  }
+  .gauge-value { text-align:center; font-size: 22px; font-weight: bold; margin-top: 10px; color:#4a6fa5;}
+  .gauge-status { text-align:center; font-size: 14px; margin-top:4px; }
+  .legend { font-size:12px; color:#7a8aa0; text-align:center; margin-top:8px;}
+
+  /* ===== 인체 모식도 (이자/간/세포) ===== */
+  .body-map { position: relative; height: 230px; }
+  .organ {
+    position: absolute; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; font-size: 13px; font-weight:bold; text-align:center;
+  }
+  .pancreas { left: 8%; top: 35%; width: 95px; height: 95px; background:#ffe0b2; color:#c47f17; }
+  .liver    { right: 8%; top: 8%; width: 105px; height: 105px; background:#f8c6c9; color:#b5575c; }
+  .cell     { right: 12%; bottom: 5%; width: 80px; height: 80px; background:#cfe8f5; color:#3b7fa0; }
+
+  /* 글리코젠 저장 표시 (간 안의 포도당 덩어리) */
+  .glycogen-store {
+    position:absolute; right: 8%; top: 120px; width:105px; text-align:center;
+    font-size: 12px; color:#b5575c;
+  }
+  .glucose-dots { font-size: 18px; letter-spacing:2px; min-height: 22px; }
+
+  /* ===== 날아가는 호르몬 캡슐 애니메이션 ===== */
+  .capsule {
+    position: absolute; width: 26px; height: 16px; border-radius: 10px;
+    font-size: 10px; color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:bold; opacity:0; z-index: 5;
+  }
+  .insulin  { background:#5fa9c9; }
+  .glucagon { background:#e58f4e; }
+  /* 인슐린: 이자 -> 간 방향으로 날아감 */
+  @keyframes flyInsulin {
+    0%   { left: 18%; top: 45%; opacity:0; }
+    15%  { opacity:1; }
+    100% { left: 70%; top: 25%; opacity:0; }
+  }
+  /* 글루카곤: 이자 -> 간 방향으로 날아감(역방향 효과 표현) */
+  @keyframes flyGlucagon {
+    0%   { left: 18%; top: 45%; opacity:0; }
+    15%  { opacity:1; }
+    100% { left: 70%; top: 30%; opacity:0; }
+  }
+  .anim-insulin  { animation: flyInsulin 1.4s ease-in forwards; }
+  .anim-glucagon { animation: flyGlucagon 1.4s ease-in forwards; }
+
+  /* 포도당이 세포로 들어가는 표시 */
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.15);} }
+  .active-pulse { animation: pulse 0.8s ease infinite; }
+
+  /* ===== 실시간 설명창 ===== */
+  .message-board {
+    background: #fffbe6; border-left: 6px solid #ffd54f;
+    border-radius: 10px; padding: 16px; font-size: 15px; line-height:1.6;
+    min-height: 70px; color:#6b5b1a;
+  }
+  .hormone-tag { display:inline-block; padding:2px 8px; border-radius:8px; color:#fff; font-size:13px; font-weight:bold;}
+</style>
+</head>
+<body>
+  <h1>🩸 혈당량 조절 항상성 시뮬레이션</h1>
+  <p class="subtitle">버튼을 눌러 우리 몸이 어떻게 혈당을 일정하게 유지하는지 직접 확인해 보세요!</p>
+
+  <div class="container">
+    <!-- ===== 좌측: 혈당 게이지 대시보드 ===== -->
+    <div class="card">
+      <h2>📊 현재 혈당량</h2>
+      <div class="gauge-wrap">
+        <div class="gauge-bar-bg">
+          <!-- 정상 범위(녹색) 가이드라인: 70~110 구간 -->
+          <div class="normal-zone" id="normalZone"></div>
+          <!-- 혈당 수치에 따라 높이가 변하는 막대 -->
+          <div class="gauge-fill" id="gaugeFill"></div>
+        </div>
+      </div>
+      <div class="gauge-value"><span id="bloodSugar">90</span> mg/dL</div>
+      <div class="gauge-status" id="statusText">정상 ✅</div>
+      <div class="legend">초록 점선 구간(70~110)이 '정상 범위'예요</div>
+    </div>
+
+    <!-- ===== 우측: 인체 모식도 + 애니메이션 ===== -->
+    <div class="card">
+      <h2>🫀 우리 몸 속 이야기</h2>
+      <div class="body-map" id="bodyMap">
+        <div class="organ pancreas" id="pancreas">이자<br>(췌장)</div>
+        <div class="organ liver" id="liver">간<br>(Liver)</div>
+        <div class="organ cell" id="cell">세포</div>
+        <!-- 간에 저장된 글리코젠(포도당 덩어리) 표시 -->
+        <div class="glycogen-store">
+          글리코젠 저장량<br>
+          <span class="glucose-dots" id="glycogenDots">🍬🍬</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 컨트롤 버튼 ===== -->
+    <div class="card full">
+      <div class="controls">
+        <button class="btn-eat"   id="eatBtn">🍚 식사하기 (혈당 ↑)</button>
+        <button class="btn-exer"  id="exerBtn">🏃 운동하기/공복 (혈당 ↓)</button>
+        <button class="btn-reset" id="resetBtn">🔄 초기화</button>
+      </div>
+    </div>
+
+    <!-- ===== 실시간 설명창 ===== -->
+    <div class="card full">
+      <h2>💬 실시간 해설</h2>
+      <div class="message-board" id="messageBoard">
+        버튼을 눌러 시뮬레이션을 시작해 보세요! 지금 우리 몸의 혈당은 정상 범위에 있어요. 😊
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================================================
+   혈당량 조절 항상성 시뮬레이션 - 핵심 로직
+   - NORMAL_MIN ~ NORMAL_MAX : 정상 범위
+   - bloodSugar : 현재 혈당 수치(상태 변수)
+   ========================================================= */
+const NORMAL_MIN = 70;   // 정상 범위 하한
+const NORMAL_MAX = 110;  // 정상 범위 상한
+const GAUGE_MAX  = 200;  // 게이지 시각화 최댓값
+let bloodSugar = 90;     // 초기 혈당값
+let glycogen   = 2;      // 간에 저장된 글리코젠 양(0~5단계)
+let timer = null;        // 자동 회복 애니메이션 타이머
+
+const $ = (id) => document.getElementById(id);
+
+/* ---- 정상 범위(녹색 영역) 위치 계산하여 게이지에 그리기 ---- */
+function drawNormalZone() {
+  const bottom = (NORMAL_MIN / GAUGE_MAX) * 100; // 아래에서부터의 %
+  const height = ((NORMAL_MAX - NORMAL_MIN) / GAUGE_MAX) * 100;
+  const zone = $("normalZone");
+  zone.style.bottom = bottom + "%";
+  zone.style.height = height + "%";
+}
+
+/* ---- 화면(게이지/숫자/글리코젠) 갱신 ---- */
+function render() {
+  // 혈당 막대 높이 갱신
+  const pct = Math.min((bloodSugar / GAUGE_MAX) * 100, 100);
+  $("gaugeFill").style.height = pct + "%";
+  $("bloodSugar").textContent = Math.round(bloodSugar);
+
+  // 색상 및 상태 텍스트: 정상/높음/낮음 구분
+  const fill = $("gaugeFill");
+  const status = $("statusText");
+  if (bloodSugar > NORMAL_MAX) {
+    fill.style.background = "linear-gradient(to top,#ff9aa2,#ff6b6b)";
+    status.textContent = "혈당 높음 ⬆️"; status.style.color = "#e05555";
+  } else if (bloodSugar < NORMAL_MIN) {
+    fill.style.background = "linear-gradient(to top,#82c8e5,#5fa9c9)";
+    status.textContent = "혈당 낮음 ⬇️"; status.style.color = "#3b7fa0";
+  } else {
+    fill.style.background = "linear-gradient(to top,#a8e6a3,#6bbf6b)";
+    status.textContent = "정상 ✅"; status.style.color = "#4caf50";
+  }
+
+  // 간의 글리코젠 저장량을 사탕(🍬) 개수로 표현
+  $("glycogenDots").textContent = glycogen > 0 ? "🍬".repeat(glycogen) : "(비어있음)";
+}
+
+/* ---- 메시지 출력 ---- */
+function setMessage(html) { $("messageBoard").innerHTML = html; }
+
+/* ---- 호르몬 캡슐 날리기 애니메이션 ---- */
+function flyHormone(type) {
+  const cap = document.createElement("div");
+  cap.className = "capsule " + type + " anim-" + type;
+  cap.textContent = (type === "insulin") ? "인슐린" : "글루카곤";
+  cap.style.fontSize = "8px";
+  $("bodyMap").appendChild(cap);
+  // 애니메이션 종료 후 제거
+  cap.addEventListener("animationend", () => cap.remove());
+}
+
+/* 진행 중인 자동회복 타이머 정리 */
+function clearTimer() { if (timer) { clearInterval(timer); timer = null; } }
+
+/* =========================================================
+   상태 A: [식사하기] - 혈당 상승 → 인슐린 분비
+   ========================================================= */
+function eat() {
+  clearTimer();
+  bloodSugar += 70; // 음식 섭취로 혈당 급상승
+  render();
+  setMessage(`🍚 식사를 하니 혈당이 <b>확 올라갔어요!</b> (현재 ${Math.round(bloodSugar)} mg/dL)<br>
+    이자(췌장)가 깜짝 놀라 <span class="hormone-tag" style="background:#5fa9c9">인슐린</span>('포도당 창고지기')을 분비합니다.`);
+
+  // 약간의 텀을 두고 인슐린 작용 시작
+  setTimeout(() => {
+    setMessage(`<span class="hormone-tag" style="background:#5fa9c9">인슐린</span>이 간으로 날아갑니다! 🚀<br>
+      혈액 속 포도당을 ① 세포로 밀어넣어 에너지로 쓰게 하고,<br>
+      ② 남은 포도당은 간에 <b>'글리코젠'</b> 형태로 차곡차곡 저장해요.`);
+    $("cell").classList.add("active-pulse");
+
+    // 혈당이 정상으로 내려갈 때까지 반복 (인슐린 작용)
+    timer = setInterval(() => {
+      flyHormone("insulin");                 // 인슐린 캡슐 날리기
+      bloodSugar -= 6;                        // 혈당 감소
+      if (Math.random() < 0.4 && glycogen < 5) glycogen++; // 글리코젠 저장 증가
+      if (bloodSugar <= 95) {                 // 정상 회복 완료
+        bloodSugar = 95; clearTimer();
+        $("cell").classList.remove("active-pulse");
+        setMessage(`✅ <b>성공!</b> 인슐린 덕분에 혈당이 다시 정상으로 돌아왔어요.<br>
+          포도당은 간에 글리코젠으로 저장되었답니다. 우리 몸은 정말 똑똑하죠? 😄`);
+      }
+      render();
+    }, 350);
+  }, 1300);
+}
+
+/* =========================================================
+   상태 B: [운동하기/공복] - 혈당 하강 → 글루카곤 분비
+   ========================================================= */
+function exercise() {
+  clearTimer();
+  bloodSugar -= 50; // 운동/공복으로 혈당 급하강
+  if (bloodSugar < 30) bloodSugar = 30;
+  render();
+  setMessage(`🏃 운동을 하거나 오래 굶으니 혈당이 <b>뚝 떨어졌어요!</b> (현재 ${Math.round(bloodSugar)} mg/dL)<br>
+    이자(췌장)가 <span class="hormone-tag" style="background:#e58f4e">글루카곤</span>('비상 포도당 호출원')을 분비합니다.`);
+
+  setTimeout(() => {
+    setMessage(`<span class="hormone-tag" style="background:#e58f4e">글루카곤</span>이 간으로 출동! 🚒<br>
+      간에 저장돼 있던 <b>'글리코젠'</b>을 다시 <b>포도당</b>으로 분해해서<br>
+      혈액 속으로 내보내 세포가 쓸 수 있게 도와줍니다.`);
+
+    // 혈당이 정상으로 올라갈 때까지 반복 (글루카곤 작용)
+    timer = setInterval(() => {
+      flyHormone("glucagon");                // 글루카곤 캡슐 날리기
+      bloodSugar += 6;                       // 혈당 상승
+      if (glycogen > 0 && Math.random() < 0.5) glycogen--; // 글리코젠 분해(감소)
+      if (bloodSugar >= 88) {                // 정상 회복 완료
+        bloodSugar = 88; clearTimer();
+        setMessage(`✅ <b>성공!</b> 글루카곤이 글리코젠을 분해해 혈당을 정상으로 끌어올렸어요.<br>
+          위급할 때 저장해 둔 에너지를 꺼내 쓰는 거예요. 🔋`);
+      }
+      render();
+    }, 350);
+  }, 1300);
+}
+
+/* ---- 초기화 ---- */
+function reset() {
+  clearTimer();
+  bloodSugar = 90; glycogen = 2;
+  $("cell").classList.remove("active-pulse");
+  render();
+  setMessage("🔄 초기 상태로 돌아왔어요. 혈당은 정상 범위(90 mg/dL)예요. 다시 실험해 볼까요? 😊");
+}
+
+/* ---- 이벤트 연결 및 초기 실행 ---- */
+$("eatBtn").addEventListener("click", eat);
+$("exerBtn").addEventListener("click", exercise);
+$("resetBtn").addEventListener("click", reset);
+drawNormalZone();
+render();
+</script>
+</body>
+</html>
