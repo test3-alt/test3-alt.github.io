@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!--
+  뉴런 시뮬레이션 — 실습용 샘플 산출물
+  · 이 파일은 "작동하는 산출물"의 예시입니다(실습 C에서 카드에 연결해 봅니다).
+  · 외부 라이브러리 없이 이 파일 하나로 작동합니다. 더블클릭해도 열립니다.
+  · GitHub에 올리면 username.github.io/neuron.html (또는 .html 없이 /neuron)로 열립니다.
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴런 시뮬레이션</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:system-ui,"Malgun Gothic",sans-serif;background:#0e1224;color:#e8ecff;
+       min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  h1{font-size:1.6rem;margin-bottom:6px;}
+  .q{color:#9aa6d8;margin-bottom:26px;font-size:1rem;text-align:center;}
+  .stage{position:relative;width:min(640px,92vw);height:170px;margin-bottom:8px;}
+  .dendrite{position:absolute;left:0;width:90px;height:3px;background:#5b6bb5;border-radius:3px;}
+  .d1{top:55px;transform:rotate(-22deg);} .d2{top:84px;} .d3{top:113px;transform:rotate(22deg);}
+  .soma{position:absolute;left:78px;top:54px;width:62px;height:62px;border-radius:50%;
+        background:radial-gradient(circle at 35% 30%,#6aa0ff,#274690);box-shadow:0 0 0 0 rgba(120,180,255,.7);}
+  .soma.fire{animation:pulse .5s ease;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(120,180,255,.7);}100%{box-shadow:0 0 0 26px rgba(120,180,255,0);}}
+  .axon{position:absolute;left:140px;top:83px;right:70px;height:6px;background:#3a4680;border-radius:6px;}
+  .myelin{position:absolute;top:78px;width:34px;height:16px;background:#566bd0;border-radius:8px;opacity:.7;}
+  .terminal{position:absolute;right:20px;top:64px;width:46px;height:42px;border-radius:0 40% 40% 0;
+            background:#274690;transition:background .2s;}
+  .terminal.fire{background:#ffd166;box-shadow:0 0 22px #ffd166;}
+  .pulse{position:absolute;top:79px;left:150px;width:14px;height:14px;border-radius:50%;
+         background:#ffe08a;box-shadow:0 0 14px #ffe08a;opacity:0;}
+  .pulse.go{opacity:1;transition:left .8s linear;}
+  .panel{width:min(640px,92vw);background:#181d39;border:1px solid #2c3566;border-radius:14px;padding:18px;}
+  .row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .row label{min-width:84px;color:#aab4e6;font-size:.92rem;}
+  input[type=range]{flex:1;}
+  .val{min-width:54px;text-align:right;font-variant-numeric:tabular-nums;}
+  .thresh{font-size:.82rem;color:#8893c8;margin-bottom:14px;}
+  button{background:#6aa0ff;color:#0e1224;border:none;border-radius:9px;padding:11px 18px;
+         font-size:1rem;font-weight:700;cursor:pointer;}
+  button:active{transform:translateY(1px);}
+  .reset{background:transparent;color:#9aa6d8;border:1px solid #3a4680;margin-left:8px;}
+  .status{margin-top:14px;font-size:1.05rem;font-weight:600;min-height:1.4em;}
+  .ok{color:#ffd166;} .no{color:#ff8fa3;}
+  footer{margin-top:20px;color:#5b6699;font-size:.8rem;}
+</style>
+</head>
+<body>
+  <h1>🧠 뉴런 시뮬레이션</h1>
+  <p class="q">🤔 자극이 얼마나 세야 신호가 전달될까? (역치와 ‘실무율’ 탐구)</p>
+
+  <div class="stage">
+    <div class="dendrite d1"></div><div class="dendrite d2"></div><div class="dendrite d3"></div>
+    <div class="soma" id="soma"></div>
+    <div class="axon"></div>
+    <div class="myelin" style="left:175px"></div>
+    <div class="myelin" style="left:255px"></div>
+    <div class="myelin" style="left:335px"></div>
+    <div class="myelin" style="left:415px"></div>
+    <div class="terminal" id="terminal"></div>
+    <div class="pulse" id="pulse"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <label>자극 세기</label>
+      <input type="range" id="stim" min="0" max="100" value="30">
+      <span class="val" id="stimVal">30</span>
+    </div>
+    <div class="thresh">⚡ 역치(신호가 발생하는 최소 세기) = <b>50</b></div>
+    <button id="fire">자극 주기</button>
+    <button class="reset" id="reset">다시</button>
+    <div class="status" id="status">슬라이더로 자극 세기를 정하고 ‘자극 주기’를 눌러 보세요.</div>
+  </div>
+
+  <footer>탐구 아카이브 · GitHub Pages</footer>
+
+<script>
+  var THRESH = 50;
+  var stim = document.getElementById('stim');
+  var stimVal = document.getElementById('stimVal');
+  var soma = document.getElementById('soma');
+  var pulse = document.getElementById('pulse');
+  var terminal = document.getElementById('terminal');
+  var status = document.getElementById('status');
+
+  stim.addEventListener('input', function(){ stimVal.textContent = stim.value; });
+
+  function reset(){
+    pulse.classList.remove('go'); pulse.style.left = '150px'; pulse.style.opacity = 0;
+    soma.classList.remove('fire'); terminal.classList.remove('fire');
+    status.textContent = '슬라이더로 자극 세기를 정하고 ‘자극 주기’를 눌러 보세요.';
+    status.className = 'status';
+  }
+
+  document.getElementById('fire').addEventListener('click', function(){
+    var v = +stim.value;
+    pulse.classList.remove('go'); pulse.style.left = '150px';
+    soma.classList.remove('fire'); terminal.classList.remove('fire');
+
+    if (v < THRESH){
+      soma.classList.add('fire');
+      status.textContent = '역치 미달 — 신호가 전달되지 않았어요. (' + v + ' < ' + THRESH + ')';
+      status.className = 'status no';
+      return;
+    }
+    // 역치 이상이면 항상 똑같은 크기의 신호가 발생 (실무율: 전부 아니면 전무)
+    soma.classList.add('fire');
+    pulse.style.opacity = 1;
+    requestAnimationFrame(function(){
+      pulse.classList.add('go');
+      pulse.style.left = 'calc(100% - 86px)';
+    });
+    status.textContent = '활동전위 발생! ⚡ 신호가 축삭을 따라 전달됩니다. (' + v + ' ≥ ' + THRESH + ')';
+    status.className = 'status ok';
+    setTimeout(function(){ terminal.classList.add('fire'); }, 800);
+  });
+
+  document.getElementById('reset').addEventListener('click', reset);
+</script>
+</body>
+</html>
